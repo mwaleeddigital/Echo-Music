@@ -1,7 +1,7 @@
 @file:Suppress("UnstableApiUsage")
 
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
 
     repositories {
         google()
@@ -34,7 +34,10 @@ include(
     ":unison",
     ":core",
     ":lyrics",
-    ":playback"
+    ":playback",
+    ":shared",
+    ":shared-ui",
+    ":desktopApp"
 )
 
 

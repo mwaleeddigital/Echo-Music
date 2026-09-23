@@ -1,0 +1,388 @@
+CREATE TABLE song (
+  id TEXT PRIMARY KEY NOT NULL,
+  title TEXT NOT NULL,
+  duration INTEGER NOT NULL DEFAULT -1,
+  thumbnailUrl TEXT,
+  albumId TEXT,
+  albumName TEXT,
+  explicit INTEGER NOT NULL DEFAULT 0,
+  year INTEGER,
+  date INTEGER,
+  dateModified INTEGER,
+  liked INTEGER NOT NULL DEFAULT 0,
+  likedDate INTEGER,
+  totalPlayTime INTEGER NOT NULL DEFAULT 0,
+  inLibrary INTEGER,
+  dateDownload INTEGER,
+  isLocal INTEGER NOT NULL DEFAULT 0,
+  libraryAddToken TEXT,
+  libraryRemoveToken TEXT,
+  lyricsOffset INTEGER NOT NULL DEFAULT 0,
+  romanizeLyrics INTEGER NOT NULL DEFAULT 1,
+  isDownloaded INTEGER NOT NULL DEFAULT 0,
+  isUploaded INTEGER NOT NULL DEFAULT 0,
+  isVideo INTEGER NOT NULL DEFAULT 0,
+  hideFromQuickPicks INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX index_song_albumId ON song(albumId);
+
+selectAllSongs:
+SELECT * FROM song;
+
+selectSongById:
+SELECT * FROM song WHERE id = ?;
+
+insertSong:
+INSERT OR REPLACE INTO song(id, title, duration, thumbnailUrl, albumId, albumName, explicit, year, date, dateModified, liked, likedDate, totalPlayTime, inLibrary, dateDownload, isLocal, libraryAddToken, libraryRemoveToken, lyricsOffset, romanizeLyrics, isDownloaded, isUploaded, isVideo, hideFromQuickPicks)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteSong:
+DELETE FROM song WHERE id = ?;
+
+CREATE TABLE artist (
+  id TEXT PRIMARY KEY NOT NULL,
+  name TEXT NOT NULL,
+  thumbnailUrl TEXT,
+  channelId TEXT,
+  lastUpdateTime INTEGER NOT NULL,
+  bookmarkedAt INTEGER,
+  isLocal INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE album (
+  id TEXT PRIMARY KEY NOT NULL,
+  playlistId TEXT,
+  title TEXT NOT NULL,
+  year INTEGER,
+  thumbnailUrl TEXT,
+  themeColor INTEGER,
+  songCount INTEGER NOT NULL,
+  duration INTEGER NOT NULL,
+  explicit INTEGER NOT NULL DEFAULT 0,
+  lastUpdateTime INTEGER NOT NULL,
+  bookmarkedAt INTEGER,
+  likedDate INTEGER,
+  inLibrary INTEGER,
+  description TEXT,
+  isLocal INTEGER NOT NULL DEFAULT 0,
+  isUploaded INTEGER NOT NULL DEFAULT 0
+);
+
+selectAllArtists:
+SELECT * FROM artist;
+
+selectArtistById:
+SELECT * FROM artist WHERE id = ?;
+
+selectAllAlbums:
+SELECT * FROM album;
+
+selectAlbumById:
+SELECT * FROM album WHERE id = ?;
+
+CREATE TABLE playlist (
+  id TEXT PRIMARY KEY NOT NULL,
+  name TEXT NOT NULL,
+  browseId TEXT,
+  createdAt INTEGER,
+  lastUpdateTime INTEGER,
+  isEditable INTEGER NOT NULL DEFAULT 1,
+  bookmarkedAt INTEGER,
+  remoteSongCount INTEGER,
+  playEndpointParams TEXT,
+  thumbnailUrl TEXT,
+  shuffleEndpointParams TEXT,
+  radioEndpointParams TEXT,
+  isLocal INTEGER NOT NULL DEFAULT 0,
+  isAutoSync INTEGER NOT NULL DEFAULT 0,
+  isPinned INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE playlist_song_map (
+  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+  playlistId TEXT NOT NULL,
+  songId TEXT NOT NULL,
+  position INTEGER NOT NULL DEFAULT 0,
+  setVideoId TEXT,
+  FOREIGN KEY (playlistId) REFERENCES playlist(id) ON DELETE CASCADE,
+  FOREIGN KEY (songId) REFERENCES song(id) ON DELETE CASCADE
+);
+
+CREATE INDEX index_playlist_song_map_playlistId ON playlist_song_map(playlistId);
+CREATE INDEX index_playlist_song_map_songId ON playlist_song_map(songId);
+
+CREATE TABLE song_artist_map (
+  songId TEXT NOT NULL,
+  artistId TEXT NOT NULL,
+  position INTEGER NOT NULL,
+  PRIMARY KEY (songId, artistId),
+  FOREIGN KEY (songId) REFERENCES song(id) ON DELETE CASCADE,
+  FOREIGN KEY (artistId) REFERENCES artist(id) ON DELETE CASCADE
+);
+
+CREATE INDEX index_song_artist_map_songId ON song_artist_map(songId);
+CREATE INDEX index_song_artist_map_artistId ON song_artist_map(artistId);
+
+CREATE TABLE song_album_map (
+  songId TEXT NOT NULL,
+  albumId TEXT NOT NULL,
+  `index` INTEGER NOT NULL,
+  PRIMARY KEY (songId, albumId),
+  FOREIGN KEY (songId) REFERENCES song(id) ON DELETE CASCADE,
+  FOREIGN KEY (albumId) REFERENCES album(id) ON DELETE CASCADE
+);
+
+CREATE INDEX index_song_album_map_songId ON song_album_map(songId);
+CREATE INDEX index_song_album_map_albumId ON song_album_map(albumId);
+
+CREATE TABLE event (
+  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+  songId TEXT NOT NULL,
+  timestamp INTEGER NOT NULL,
+  playTime INTEGER NOT NULL,
+  FOREIGN KEY (songId) REFERENCES song(id) ON DELETE CASCADE
+);
+
+CREATE INDEX index_event_songId ON event(songId);
+
+CREATE TABLE format (
+  id TEXT PRIMARY KEY NOT NULL,
+  itag INTEGER NOT NULL,
+  mimeType TEXT NOT NULL,
+  codecs TEXT NOT NULL,
+  bitrate INTEGER NOT NULL,
+  sampleRate INTEGER,
+  contentLength INTEGER NOT NULL,
+  loudnessDb REAL,
+  perceptualLoudnessDb REAL,
+  playbackUrl TEXT
+);
+
+CREATE TABLE lyrics (
+  id TEXT PRIMARY KEY NOT NULL,
+  lyrics TEXT NOT NULL,
+  provider TEXT NOT NULL DEFAULT 'Unknown',
+  translatedLyrics TEXT NOT NULL DEFAULT '',
+  translationLanguage TEXT NOT NULL DEFAULT '',
+  translationMode TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE playCount (
+  song TEXT NOT NULL,
+  year INTEGER NOT NULL DEFAULT -1,
+  month INTEGER NOT NULL DEFAULT -1,
+  count INTEGER NOT NULL DEFAULT -1,
+  PRIMARY KEY (song, year, month)
+);
+
+CREATE TABLE recognition_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+  trackId TEXT NOT NULL,
+  title TEXT NOT NULL,
+  artist TEXT NOT NULL,
+  album TEXT,
+  coverArtUrl TEXT,
+  coverArtHqUrl TEXT,
+  genre TEXT,
+  releaseDate TEXT,
+  label TEXT,
+  shazamUrl TEXT,
+  appleMusicUrl TEXT,
+  spotifyUrl TEXT,
+  isrc TEXT,
+  youtubeVideoId TEXT,
+  recognizedAt INTEGER NOT NULL,
+  liked INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX index_recognition_history_trackId ON recognition_history(trackId);
+
+CREATE TABLE search_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+  query TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE set_video_id (
+  videoId TEXT PRIMARY KEY NOT NULL,
+  setVideoId TEXT
+);
+
+CREATE TABLE beat_info (
+  songId TEXT PRIMARY KEY NOT NULL,
+  bpm REAL NOT NULL,
+  firstBeatOffsetMs INTEGER NOT NULL,
+  confidence REAL NOT NULL,
+  analyzedAt INTEGER NOT NULL,
+  mixInPointMs INTEGER,
+  mixOutPointMs INTEGER,
+  keyPitchClass INTEGER,
+  keyIsMinor INTEGER
+);
+
+CREATE TABLE related_song_map (
+  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+  songId TEXT NOT NULL,
+  relatedSongId TEXT NOT NULL,
+  FOREIGN KEY (songId) REFERENCES song(id) ON DELETE CASCADE,
+  FOREIGN KEY (relatedSongId) REFERENCES song(id) ON DELETE CASCADE
+);
+
+CREATE INDEX index_related_song_map_songId ON related_song_map(songId);
+CREATE INDEX index_related_song_map_relatedSongId ON related_song_map(relatedSongId);
+
+CREATE TABLE speed_dial_item (
+  id TEXT PRIMARY KEY NOT NULL,
+  secondaryId TEXT,
+  title TEXT NOT NULL,
+  subtitle TEXT,
+  thumbnailUrl TEXT,
+  type TEXT NOT NULL,
+  explicit INTEGER NOT NULL DEFAULT 0,
+  createDate INTEGER NOT NULL
+);
+
+CREATE VIEW sorted_song_artist_map AS 
+SELECT * FROM song_artist_map ORDER BY position;
+
+CREATE VIEW sorted_song_album_map AS 
+SELECT * FROM song_album_map ORDER BY `index`;
+
+CREATE VIEW playlist_song_map_preview AS
+SELECT * FROM playlist_song_map ORDER BY position LIMIT 4;
+
+-- Song Queries
+songsByRowIdAsc:
+SELECT * FROM song WHERE inLibrary IS NOT NULL ORDER BY rowid;
+
+songsByCreateDateAsc:
+SELECT * FROM song WHERE inLibrary IS NOT NULL ORDER BY inLibrary;
+
+songsByNameAsc:
+SELECT * FROM song WHERE inLibrary IS NOT NULL ORDER BY title;
+
+songsByPlayTimeAsc:
+SELECT * FROM song WHERE inLibrary IS NOT NULL ORDER BY totalPlayTime;
+
+topSongs:
+SELECT * FROM song ORDER BY totalPlayTime DESC LIMIT :limit;
+
+likedSongsByRowIdAsc:
+SELECT * FROM song WHERE liked ORDER BY rowid;
+
+likedSongsByCreateDateAsc:
+SELECT * FROM song WHERE liked ORDER BY likedDate;
+
+likedSongsByNameAsc:
+SELECT * FROM song WHERE liked ORDER BY title;
+
+likedSongsByPlayTimeAsc:
+SELECT * FROM song WHERE liked ORDER BY totalPlayTime;
+
+likedSongsCount:
+SELECT COUNT(1) FROM song WHERE liked;
+
+-- Artist Queries
+artistSongsByCreateDateAsc:
+SELECT song.* FROM song_artist_map JOIN song ON song_artist_map.songId = song.id WHERE artistId = :artistId AND inLibrary IS NOT NULL ORDER BY inLibrary;
+
+artistSongsByNameAsc:
+SELECT song.* FROM song_artist_map JOIN song ON song_artist_map.songId = song.id WHERE artistId = :artistId AND inLibrary IS NOT NULL ORDER BY title;
+
+artistSongsByPlayTimeAsc:
+SELECT song.* FROM song_artist_map JOIN song ON song_artist_map.songId = song.id WHERE artistId = :artistId AND inLibrary IS NOT NULL ORDER BY totalPlayTime;
+
+mostPlayedSongsByArtist:
+SELECT song.*
+FROM song
+JOIN (
+    SELECT event.songId, SUM(event.playTime) AS totalPlayTime
+    FROM event
+    JOIN song_artist_map ON event.songId = song_artist_map.songId
+    WHERE song_artist_map.artistId = :artistId AND event.timestamp >= :fromTimeStamp AND event.timestamp <= :toTimeStamp
+    GROUP BY event.songId
+) AS play_times ON song.id = play_times.songId
+ORDER BY play_times.totalPlayTime DESC;
+
+artistSongsPreview:
+SELECT song.* FROM song_artist_map JOIN song ON song_artist_map.songId = song.id WHERE artistId = :artistId AND inLibrary IS NOT NULL LIMIT :previewSize;
+
+quickPicks:
+SELECT song.*
+FROM (SELECT *, COUNT(1) AS referredCount
+      FROM related_song_map
+      GROUP BY relatedSongId) map
+JOIN song ON song.id = map.relatedSongId
+WHERE songId IN (
+    SELECT songId FROM (
+        SELECT songId FROM event ORDER BY id DESC LIMIT 5
+    )
+    UNION
+    SELECT songId FROM (
+        SELECT songId FROM event WHERE timestamp > :now - 86400000 * 7 GROUP BY songId ORDER BY SUM(playTime) DESC LIMIT 5
+    )
+    UNION
+    SELECT id FROM (
+        SELECT id FROM song ORDER BY totalPlayTime DESC LIMIT 10
+    )
+)
+AND song.hideFromQuickPicks = 0
+ORDER BY referredCount DESC
+LIMIT 100;
+
+mostPlayedSongsStats:
+SELECT s.id, s.title, s.thumbnailUrl, s.isVideo,
+       (SELECT name FROM artist WHERE id = sam.artistId) AS artistName,
+       (SELECT COUNT(1)
+        FROM event
+        WHERE songId = s.id
+          AND timestamp > :fromTimeStamp AND timestamp <= :toTimeStamp) AS songCountListened,
+       (SELECT SUM(event.playTime)
+        FROM event
+        WHERE songId = s.id
+          AND timestamp > :fromTimeStamp AND timestamp <= :toTimeStamp) AS timeListened
+FROM song AS s
+LEFT JOIN song_artist_map AS sam ON s.id = sam.songId
+JOIN (SELECT songId
+      FROM event
+      WHERE timestamp > :fromTimeStamp
+        AND timestamp <= :toTimeStamp
+      GROUP BY songId
+      ORDER BY SUM(playTime) DESC
+      LIMIT :limit) AS top_songs ON s.id = top_songs.songId
+GROUP BY s.id
+ORDER BY timeListened DESC
+LIMIT :limit OFFSET :offset;
+
+-- Playlist Queries
+playlistsByCreateDateAsc:
+SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY id;
+
+playlistsByUpdatedDateAsc:
+SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY lastUpdateTime;
+
+playlistsByNameAsc:
+SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY name;
+
+editablePlaylistsByNameAsc:
+SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE isEditable AND bookmarkedAt IS NOT NULL ORDER BY name;
+
+playlistsBySongCountAsc:
+SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE bookmarkedAt IS NOT NULL ORDER BY songCount;
+
+playlist:
+SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE id = :playlistId;
+
+editablePlaylistsByCreateDateAsc:
+SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE isEditable AND bookmarkedAt IS NOT NULL ORDER BY id;
+
+playlistByBrowseId:
+SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist WHERE browseId = :browseId;
+
+
+
+
+
+
+
+

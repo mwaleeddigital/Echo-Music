@@ -1,0 +1,13 @@
+{
+  "features": [
+    "KMP Migration: Migrated preferences to multiplatform-settings in :shared",
+    "KMP Migration: Abstracted AudioPlayer interface and domain models",
+    "KMP Migration: Integrated SQLDelight MusicDatabase in :shared",
+    "KMP Migration: Converted :innertube to pure Kotlin Multiplatform (Android, Desktop, Web)",
+    "KMP Migration: Implemented Nothing OS 5.0 Compose Multiplatform UI & screens in :shared-ui",
+    "KMP Migration: Added WebAudioPlayer with HTML5 Audio and Web CORS proxy support in :webapp",
+    "KMP Migration: Added :desktopApp module with DesktopAudioPlayer and Nothing OS 5.0 window"
+  ],
+  "bug_fixes": [],
+  "contributors": []
+}

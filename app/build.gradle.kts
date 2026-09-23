@@ -172,13 +172,7 @@ android {
     targetCompatibility = JavaVersion.VERSION_21
   }
 
-  kotlin {
-    jvmToolchain(21)
-    compilerOptions {
-      freeCompilerArgs.add("-Xannotation-default-target=param-property")
-      jvmTarget.set(JvmTarget.JVM_21)
-    }
-  }
+
 
   buildFeatures {
     compose = true
@@ -230,6 +224,14 @@ protobuf {
 }
 
 ksp {}
+
+kotlin {
+  jvmToolchain(21)
+  compilerOptions {
+    freeCompilerArgs.add("-Xannotation-default-target=param-property")
+    jvmTarget.set(JvmTarget.JVM_21)
+  }
+}
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
   compilerOptions {

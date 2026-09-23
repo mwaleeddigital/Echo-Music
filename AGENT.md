@@ -160,6 +160,10 @@ mostly-independent feature/integration:
 | `:canvas`, `:echomusiccanvas`, `:applecanvas` | Canvas-style looping video backgrounds for tracks (different providers) |
 | `:artistvideo` | Artist video features |
 | `:unison` | Cross-cutting shared utility module (check source before editing) |
+| `:shared` | Kotlin Multiplatform shared core (SettingsManager, SQLDelight MusicDatabase, AudioPlayer abstraction) |
+| `:shared-ui` | Compose Multiplatform UI components and Nothing OS 5.0 design system screens |
+| `:webapp` | Compose for Web (Wasm & Kotlin/JS) browser webapp |
+| `:desktopApp` | Compose for Desktop (JVM) standalone desktop application |
 
 When adding a new external integration (a new lyrics source, a new canvas
 provider, etc.), the existing pattern is: **new Gradle module**, register it

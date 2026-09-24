@@ -23,6 +23,7 @@ import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -54,16 +55,19 @@ fun LibraryScreen(
     downloadedSongs: List<DisplayTrack> = emptyList(),
     likedSongs: List<DisplayTrack> = emptyList(),
     historySongs: List<DisplayTrack> = emptyList(),
+    autoCachedSongs: List<DisplayTrack> = emptyList(),
     storageStats: String = "0 songs • 0 MB",
     onTrackClick: (DisplayTrack) -> Unit,
     onLikedSongsClick: () -> Unit = {},
     onDownloadedSongsClick: () -> Unit = {},
+    onCachedSongsClick: () -> Unit = {},
     onHistoryClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val categories = listOf(
         LibraryCategory("Liked Songs", "${likedSongs.size} songs • Auto playlist", Icons.Rounded.Favorite),
         LibraryCategory("Downloaded Music", "${downloadedSongs.size} songs • $storageStats", Icons.Rounded.Download),
+        LibraryCategory("Cached Songs", "${autoCachedSongs.size} songs • Auto-saved", Icons.Rounded.Storage),
         LibraryCategory("Listening History", "${historySongs.size} songs • Recently played", Icons.Rounded.History),
         LibraryCategory("Playlists", "Saved & Created", Icons.AutoMirrored.Rounded.QueueMusic)
     )
@@ -118,6 +122,7 @@ fun LibraryScreen(
                         when (cat.title) {
                             "Liked Songs" -> onLikedSongsClick()
                             "Downloaded Music" -> onDownloadedSongsClick()
+                            "Cached Songs" -> onCachedSongsClick()
                             "Listening History" -> onHistoryClick()
                         }
                     }

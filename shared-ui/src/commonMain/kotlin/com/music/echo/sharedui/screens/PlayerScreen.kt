@@ -18,6 +18,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.ArrowDownward
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Mic
@@ -68,11 +70,14 @@ fun PlayerScreen(
     onPlayPauseClick: () -> Unit,
     onPreviousClick: () -> Unit,
     onNextClick: () -> Unit,
+    isLiked: Boolean = false,
+    isDownloaded: Boolean = false,
+    onToggleLike: () -> Unit = {},
+    onDownload: () -> Unit = {},
     onSeekTo: (Long) -> Unit = {},
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isLiked by remember { mutableStateOf(false) }
     var isShuffle by remember { mutableStateOf(false) }
     var isRepeat by remember { mutableStateOf(false) }
     var showLyrics by remember { mutableStateOf(false) }
@@ -254,20 +259,40 @@ fun PlayerScreen(
                 )
             }
 
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(if (isLiked) NothingRed.copy(alpha = 0.2f) else DarkSurfaceElevated)
-                    .clickable { isLiked = !isLiked },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = if (isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                    contentDescription = if (isLiked) "Remove from Favorites" else "Add to Favorites",
-                    tint = if (isLiked) NothingRed else TextSecondary,
-                    modifier = Modifier.size(24.dp)
-                )
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Download Button
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(if (isDownloaded) Color(0xFF1ED760).copy(alpha = 0.2f) else DarkSurfaceElevated)
+                        .clickable { onDownload() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isDownloaded) Icons.Rounded.CheckCircle else Icons.Rounded.ArrowDownward,
+                        contentDescription = if (isDownloaded) "Downloaded" else "Download",
+                        tint = if (isDownloaded) Color(0xFF1ED760) else TextSecondary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                // Favorite Heart
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(if (isLiked) NothingRed.copy(alpha = 0.2f) else DarkSurfaceElevated)
+                        .clickable { onToggleLike() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                        contentDescription = if (isLiked) "Remove from Favorites" else "Add to Favorites",
+                        tint = if (isLiked) NothingRed else TextSecondary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
         }
 

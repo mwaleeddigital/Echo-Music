@@ -27,11 +27,13 @@ interface LocalMusicRepository {
 
     // Offline & Storage Audio Caching
     suspend fun getDownloadedSongs(): List<DisplayTrack> = emptyList()
+    suspend fun getAutoCachedSongs(): List<DisplayTrack> = emptyList()
     fun getCachedAudioUri(trackId: String): String? = null
     fun isSongCached(trackId: String): Boolean = false
-    fun cacheAudioStream(track: DisplayTrack, streamUrl: String) {}
+    fun cacheAudioStream(track: DisplayTrack, streamUrl: String, isExplicitDownload: Boolean = false) {}
     suspend fun getCacheStorageStats(): String = "0 songs • 0 MB"
     suspend fun clearCache() {}
+    suspend fun clearAutoCache() {}
 }
 
 class InMemoryLocalMusicRepository : LocalMusicRepository {

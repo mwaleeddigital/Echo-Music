@@ -167,4 +167,4 @@ kotlin-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 protobufPlugin = { id = "com.google.protobuf", version.ref = "protobufPlugin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
-compose-multiplatform = { id = "org.jetbrains.compose", version = "1.7.3" }
+compose-multiplatform = { id = "org.jetbrains.compose", version = "1.10.2" }

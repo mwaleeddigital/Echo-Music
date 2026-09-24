@@ -24,6 +24,7 @@ class DesktopLocalMusicRepository : LocalMusicRepository {
     private val historyJsonFile = File(rootDir, "listening_history.json")
     private val statsJsonFile = File(rootDir, "listening_stats.json")
     private val cachedSongsJsonFile = File(rootDir, "cached_songs.json")
+    private val explicitDownloadsJsonFile = File(rootDir, "explicit_downloads.json")
     val audioCacheDir = File(rootDir, "audio_cache").apply {
         if (!exists()) mkdirs()
     }
@@ -44,6 +45,7 @@ class DesktopLocalMusicRepository : LocalMusicRepository {
     private val cachedLikedSongs = mutableMapOf<String, DisplayTrack>()
     private val cachedHistory = mutableListOf<DisplayTrack>()
     private val cachedDownloadedTracks = mutableMapOf<String, DisplayTrack>()
+    private val explicitDownloadIds = mutableSetOf<String>()
     private val playCounts = mutableMapOf<String, Int>()
     private val completionCounts = mutableMapOf<String, Int>()
     private val skipCounts = mutableMapOf<String, Int>()
@@ -115,6 +117,12 @@ class DesktopLocalMusicRepository : LocalMusicRepository {
                 for (t in parsed) {
                     cachedDownloadedTracks[t.id] = t
                 }
+            }
+
+            // 6. Hydrate explicit download IDs
+            if (explicitDownloadsJsonFile.exists()) {
+                val lines = explicitDownloadsJsonFile.readLines().map { it.trim() }.filter { it.isNotEmpty() }
+                explicitDownloadIds.addAll(lines)
             }
 
             // Cross-check with files physically present in audioCacheDir
@@ -304,9 +312,18 @@ class DesktopLocalMusicRepository : LocalMusicRepository {
 
     override suspend fun getDownloadedSongs(): List<DisplayTrack> = withContext(Dispatchers.IO) {
         mutex.withLock {
-            // Filter to tracks whose audio file exists on disk
+            // Filter to tracks whose audio file exists on disk AND are explicitly downloaded
             cachedDownloadedTracks.values.filter { track ->
-                isSongCached(track.id)
+                explicitDownloadIds.contains(track.id) && isSongCached(track.id)
+            }.reversed()
+        }
+    }
+
+    override suspend fun getAutoCachedSongs(): List<DisplayTrack> = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            // Filter to tracks whose audio file exists on disk AND are NOT explicitly downloaded
+            cachedDownloadedTracks.values.filter { track ->
+                !explicitDownloadIds.contains(track.id) && isSongCached(track.id)
             }.reversed()
         }
     }
@@ -331,8 +348,20 @@ class DesktopLocalMusicRepository : LocalMusicRepository {
         return getCachedAudioUri(trackId) != null
     }
 
-    override fun cacheAudioStream(track: DisplayTrack, streamUrl: String) {
+    override fun cacheAudioStream(track: DisplayTrack, streamUrl: String, isExplicitDownload: Boolean) {
         val id = track.id
+        
+        // If it's already explicitly downloaded and we're just playing it, don't re-download.
+        // If it was auto-cached and now we're explicitly downloading, we should add to explicit list.
+        repoScope.launch {
+            if (isExplicitDownload) {
+                mutex.withLock {
+                    explicitDownloadIds.add(id)
+                    saveExplicitDownloadsToJson()
+                }
+            }
+        }
+
         if (isSongCached(id) || downloadingSet.contains(id)) return
         downloadingSet.add(id)
 
@@ -403,7 +432,35 @@ class DesktopLocalMusicRepository : LocalMusicRepository {
             val files = audioCacheDir.listFiles { _, name -> name.endsWith(".m4a") || name.endsWith(".mp3") || name.endsWith(".tmp") } ?: emptyArray()
             files.forEach { it.delete() }
             cachedDownloadedTracks.clear()
+            explicitDownloadIds.clear()
             saveCachedSongsToJson()
+            saveExplicitDownloadsToJson()
+        }
+    }
+
+    override suspend fun clearAutoCache(): Unit = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            val files = audioCacheDir.listFiles { _, name -> name.endsWith(".m4a") || name.endsWith(".mp3") || name.endsWith(".tmp") } ?: emptyArray()
+            
+            // Delete only if NOT explicitly downloaded
+            files.forEach { file ->
+                val trackId = file.nameWithoutExtension
+                if (!explicitDownloadIds.contains(trackId)) {
+                    file.delete()
+                    cachedDownloadedTracks.remove(trackId)
+                }
+            }
+            saveCachedSongsToJson()
+        }
+    }
+
+    private fun saveExplicitDownloadsToJson() {
+        try {
+            val sb = java.lang.StringBuilder()
+            explicitDownloadIds.forEach { sb.append(it).append("\n") }
+            explicitDownloadsJsonFile.writeText(sb.toString())
+        } catch (e: Exception) {
+            println("[DesktopRepo] Error writing explicit_downloads.json: ${e.message}")
         }
     }
 

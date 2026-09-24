@@ -61,6 +61,9 @@ class MainViewModel(
     private val _downloadedSongs = MutableStateFlow<List<DisplayTrack>>(emptyList())
     val downloadedSongs: StateFlow<List<DisplayTrack>> = _downloadedSongs.asStateFlow()
 
+    private val _autoCachedSongs = MutableStateFlow<List<DisplayTrack>>(emptyList())
+    val autoCachedSongs: StateFlow<List<DisplayTrack>> = _autoCachedSongs.asStateFlow()
+
     private val _historySongs = MutableStateFlow<List<DisplayTrack>>(emptyList())
     val historySongs: StateFlow<List<DisplayTrack>> = _historySongs.asStateFlow()
 
@@ -83,6 +86,7 @@ class MainViewModel(
                 _likedSongIds.value = savedLiked.map { it.id }.toSet()
             }
             _downloadedSongs.value = localRepository.getDownloadedSongs()
+            _autoCachedSongs.value = localRepository.getAutoCachedSongs()
             _historySongs.value = localRepository.getRecentHistory()
             _storageStats.value = localRepository.getCacheStorageStats()
             loadCustomPlaylists()
@@ -158,6 +162,22 @@ class MainViewModel(
         }
     }
 
+    fun openCachedSongs() {
+        scope.launch {
+            val cached = localRepository.getAutoCachedSongs()
+            _autoCachedSongs.value = cached
+            _storageStats.value = localRepository.getCacheStorageStats()
+            _selectedPlaylist.value = DisplayPlaylist(
+                id = "cached_songs",
+                title = "Cached Songs",
+                author = "Auto-saved for smooth playback",
+                thumbnailUrl = null,
+                songCountText = "${cached.size} songs"
+            )
+            _currentPlaylistSongs.value = cached
+        }
+    }
+
     fun openHistory() {
         scope.launch {
             val history = localRepository.getRecentHistory(50)
@@ -177,8 +197,64 @@ class MainViewModel(
         scope.launch {
             localRepository.clearCache()
             _downloadedSongs.value = emptyList()
+            _autoCachedSongs.value = emptyList()
             _storageStats.value = "0 songs • 0 MB"
             loadHome()
+        }
+    }
+
+    fun clearAutoCache() {
+        scope.launch {
+            localRepository.clearAutoCache()
+            _autoCachedSongs.value = emptyList()
+            _storageStats.value = localRepository.getCacheStorageStats()
+            if (_selectedPlaylist.value?.id == "cached_songs") {
+                _currentPlaylistSongs.value = emptyList()
+                _selectedPlaylist.value = _selectedPlaylist.value?.copy(songCountText = "0 songs")
+            }
+        }
+    }
+
+    fun downloadTrack(track: DisplayTrack, playbackController: PlaybackController) {
+        scope.launch {
+            if (!localRepository.isSongCached(track.id)) {
+                val res = playbackController.resolveAudioStream(track.id)
+                if (res != null) {
+                    localRepository.cacheAudioStream(track, res.streamUrl, isExplicitDownload = true)
+                    _downloadedSongs.value = localRepository.getDownloadedSongs()
+                    _storageStats.value = localRepository.getCacheStorageStats()
+                }
+            } else {
+                // If it was already cached, we still need to mark it as explicitly downloaded
+                val res = playbackController.resolveAudioStream(track.id) // It will return quickly if cached or we can just pass dummy streamUrl
+                if (res != null) {
+                    localRepository.cacheAudioStream(track, res.streamUrl, isExplicitDownload = true)
+                    _downloadedSongs.value = localRepository.getDownloadedSongs()
+                    _autoCachedSongs.value = localRepository.getAutoCachedSongs()
+                }
+            }
+        }
+    }
+
+    fun downloadPlaylist(tracks: List<DisplayTrack>, playbackController: PlaybackController) {
+        scope.launch {
+            for (track in tracks) {
+                if (!localRepository.isSongCached(track.id)) {
+                    val res = playbackController.resolveAudioStream(track.id)
+                    if (res != null) {
+                        localRepository.cacheAudioStream(track, res.streamUrl, isExplicitDownload = true)
+                        _downloadedSongs.value = localRepository.getDownloadedSongs()
+                        _storageStats.value = localRepository.getCacheStorageStats()
+                    }
+                } else {
+                    val res = playbackController.resolveAudioStream(track.id)
+                    if (res != null) {
+                        localRepository.cacheAudioStream(track, res.streamUrl, isExplicitDownload = true)
+                        _downloadedSongs.value = localRepository.getDownloadedSongs()
+                        _autoCachedSongs.value = localRepository.getAutoCachedSongs()
+                    }
+                }
+            }
         }
     }
 
@@ -189,6 +265,7 @@ class MainViewModel(
             // Re-check downloaded songs shortly after track started
             kotlinx.coroutines.delay(2500)
             _downloadedSongs.value = localRepository.getDownloadedSongs()
+            _autoCachedSongs.value = localRepository.getAutoCachedSongs()
             _storageStats.value = localRepository.getCacheStorageStats()
         }
     }
@@ -198,6 +275,7 @@ class MainViewModel(
             localRepository.recordPlayEvent(track, 0L, completed = true, skipped = false)
             _historySongs.value = localRepository.getRecentHistory()
             _downloadedSongs.value = localRepository.getDownloadedSongs()
+            _autoCachedSongs.value = localRepository.getAutoCachedSongs()
             _storageStats.value = localRepository.getCacheStorageStats()
         }
     }
@@ -215,6 +293,10 @@ class MainViewModel(
         }
         if (playlist.id == "downloaded_songs") {
             openDownloadedSongs()
+            return
+        }
+        if (playlist.id == "cached_songs") {
+            openCachedSongs()
             return
         }
         if (playlist.id == "history") {

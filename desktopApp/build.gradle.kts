@@ -30,6 +30,7 @@ kotlin {
 compose.desktop {
     application {
         mainClass = "com.music.echo.desktop.MainKt"
+        jvmArgs += listOf("-Dskiko.renderApi=SOFTWARE")
         buildTypes.release.proguard {
             isEnabled.set(false)
         }

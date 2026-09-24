@@ -95,7 +95,7 @@ class PlaybackController(
     val currentPositionMs = audioPlayer.currentPositionMs
     val currentItem = audioPlayer.currentItem
 
-    private suspend fun resolveAudioStream(videoId: String): AudioStreamResolution? {
+    suspend fun resolveAudioStream(videoId: String): AudioStreamResolution? {
         val cached = streamCache[videoId]
         if (cached != null) return cached
 

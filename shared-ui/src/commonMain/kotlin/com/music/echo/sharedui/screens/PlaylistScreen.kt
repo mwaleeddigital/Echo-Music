@@ -40,6 +40,7 @@ import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -74,7 +75,11 @@ fun PlaylistScreen(
     currentTrackId: String? = null,
     isPlaying: Boolean = false,
     isSongLiked: (String) -> Boolean = { false },
+    isSongDownloaded: (String) -> Boolean = { false },
     onToggleLikeSong: (DisplayTrack) -> Unit = {},
+    onDownloadTrack: (DisplayTrack) -> Unit = {},
+    onDownloadPlaylist: (List<DisplayTrack>) -> Unit = {},
+    onClearCacheClick: () -> Unit = {},
     onTrackClick: (DisplayTrack) -> Unit,
     onPlayAllClick: () -> Unit,
     onBackClick: () -> Unit = {},
@@ -86,7 +91,11 @@ fun PlaylistScreen(
     }
 
     var isFavorite by remember { mutableStateOf(false) }
-    var isDownloaded by remember { mutableStateOf(false) }
+    
+    // Check if ALL songs are downloaded
+    val isDownloaded = remember(songs, isSongDownloaded) {
+        songs.isNotEmpty() && songs.all { isSongDownloaded(it.id) }
+    }
 
     // Playlist Theme Gradient (Dark Plum / Purple / Liked Songs Deep Indigo)
     val headerThemeColor = remember(playlist.id) {
@@ -371,7 +380,7 @@ fun PlaylistScreen(
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(CircleShape)
-                                .clickable { isDownloaded = !isDownloaded },
+                                .clickable { onDownloadPlaylist(songs) },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -380,6 +389,24 @@ fun PlaylistScreen(
                                 tint = if (isDownloaded) Color(0xFF1ED760) else Color(0xFFB3B3B3),
                                 modifier = Modifier.size(24.dp)
                             )
+                        }
+
+                        // Clear Cache (only for Cached Songs)
+                        if (playlist.id == "cached_songs") {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .clickable { onClearCacheClick() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = androidx.compose.material.icons.Icons.Rounded.DeleteSweep,
+                                    contentDescription = "Clear Cache",
+                                    tint = Color(0xFFB3B3B3),
+                                    modifier = Modifier.size(26.dp)
+                                )
+                            }
                         }
 
                         // Options '...'
@@ -577,7 +604,9 @@ fun PlaylistScreen(
                     isPlaying = (track.id == currentTrackId && isPlaying),
                     isCurrent = (track.id == currentTrackId),
                     isLiked = isSongLiked(track.id),
+                    isDownloaded = isSongDownloaded(track.id),
                     onToggleLike = { onToggleLikeSong(track) },
+                    onDownload = { onDownloadTrack(track) },
                     onClick = { onTrackClick(track) },
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 2.dp)
                 )
@@ -639,7 +668,9 @@ private fun PlaylistTrackRow(
     isPlaying: Boolean,
     isCurrent: Boolean,
     isLiked: Boolean,
+    isDownloaded: Boolean = false,
     onToggleLike: () -> Unit,
+    onDownload: () -> Unit = {},
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -744,13 +775,14 @@ private fun PlaylistTrackRow(
             modifier = Modifier.weight(0.7f).padding(horizontal = 8.dp)
         )
 
-        // Heart Icon (revealed on hover or when liked) + Duration
+        // Actions Column (Heart + Download) + Duration
         Row(
-            modifier = Modifier.width(64.dp),
+            modifier = Modifier.width(96.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.End
         ) {
-            if (isHovered || isLiked) {
+            if (isHovered || isLiked || isDownloaded) {
+                // Heart
                 Icon(
                     imageVector = if (isLiked) Icons.Rounded.Favorite else Icons.Rounded.AddCircleOutline,
                     contentDescription = if (isLiked) "Remove from Liked Songs" else "Save to Liked Songs",
@@ -758,6 +790,16 @@ private fun PlaylistTrackRow(
                     modifier = Modifier
                         .size(16.dp)
                         .clickable { onToggleLike() }
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                // Download
+                Icon(
+                    imageVector = if (isDownloaded) Icons.Rounded.CheckCircle else Icons.Rounded.ArrowDownward,
+                    contentDescription = if (isDownloaded) "Downloaded" else "Download",
+                    tint = if (isDownloaded) Color(0xFF1ED760) else TextSecondary,
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clickable { onDownload() }
                 )
                 Spacer(modifier = Modifier.width(12.dp))
             }

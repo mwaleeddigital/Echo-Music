@@ -79,6 +79,7 @@ fun EchoApp(
     val selectedPlaylist by mainViewModel.selectedPlaylist.collectAsState()
     val currentPlaylistSongs by mainViewModel.currentPlaylistSongs.collectAsState()
     val downloadedSongs by mainViewModel.downloadedSongs.collectAsState()
+    val autoCachedSongs by mainViewModel.autoCachedSongs.collectAsState()
     val historySongs by mainViewModel.historySongs.collectAsState()
     val storageStats by mainViewModel.storageStats.collectAsState()
     val importState by mainViewModel.importState.collectAsState()
@@ -391,7 +392,11 @@ fun EchoApp(
                                         currentTrackId = currentTrack?.id,
                                         isPlaying = isPlaying,
                                         isSongLiked = { trackId -> mainViewModel.isSongLiked(trackId) },
+                                        isSongDownloaded = { trackId -> downloadedSongs.any { it.id == trackId } },
                                         onToggleLikeSong = { track -> mainViewModel.toggleLikeSong(track) },
+                                        onDownloadTrack = { track -> mainViewModel.downloadTrack(track, playbackController) },
+                                        onDownloadPlaylist = { tracks -> mainViewModel.downloadPlaylist(tracks, playbackController) },
+                                        onClearCacheClick = { mainViewModel.clearAutoCache() },
                                         onTrackClick = { track ->
                                             playbackController.playTrack(track)
                                         },
@@ -410,6 +415,7 @@ fun EchoApp(
                                     downloadedSongs = downloadedSongs,
                                     likedSongs = likedSongs,
                                     historySongs = historySongs,
+                                    autoCachedSongs = autoCachedSongs,
                                     storageStats = storageStats,
                                     onTrackClick = { track ->
                                         playbackController.playTrack(track)
@@ -421,6 +427,10 @@ fun EchoApp(
                                     onDownloadedSongsClick = {
                                         selectedTab = NavTab.PLAYLIST
                                         mainViewModel.openDownloadedSongs()
+                                    },
+                                    onCachedSongsClick = {
+                                        selectedTab = NavTab.PLAYLIST
+                                        mainViewModel.openCachedSongs()
                                     },
                                     onHistoryClick = {
                                         selectedTab = NavTab.PLAYLIST
@@ -556,6 +566,10 @@ fun EchoApp(
                         onPlayPauseClick = { playbackController.playPause() },
                         onPreviousClick = { playbackController.previous() },
                         onNextClick = { playbackController.next() },
+                        isLiked = mainViewModel.isSongLiked(track.id),
+                        isDownloaded = downloadedSongs.any { it.id == track.id },
+                        onToggleLike = { mainViewModel.toggleLikeSong(track) },
+                        onDownload = { mainViewModel.downloadTrack(track, playbackController) },
                         onSeekTo = { posMs -> playbackController.seekTo(posMs) },
                         onDismiss = {
                             isPlayerExpanded = false
